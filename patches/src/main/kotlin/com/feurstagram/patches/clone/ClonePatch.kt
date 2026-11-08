@@ -5,11 +5,11 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.resourcePatch
 import app.morphe.patcher.patch.stringOption
-import app.morphe.util.asSequence
-import app.morphe.util.findElementByAttributeValue
-import app.morphe.util.findMutableMethodOf
-import app.morphe.util.forEachChildElement
-import app.morphe.util.getReference
+import com.feurstagram.patches.shared.asSequence
+import com.feurstagram.patches.shared.findElementByAttributeValue
+import com.feurstagram.patches.shared.findMutableMethodOf
+import com.feurstagram.patches.shared.forEachChildElement
+import com.feurstagram.patches.shared.getReference
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction21c
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -31,7 +31,7 @@ val clonePatch = resourcePatch(
 
     val packageName by stringOption(
         key = "packageName",
-        default = "com.instagram.android.feurstagram",
+        default = "com.instagram.android.minimal",
         title = "Package name",
         description = "A new package name for the patched app.",
         required = true,
@@ -41,7 +41,7 @@ val clonePatch = resourcePatch(
 
     val appName by stringOption(
         key = "appName",
-        default = "Feurstagram",
+        default = "Instagram Minimal",
         title = "App name",
         description = "A new app name (label). Entering \"Instagram\" skips changing the label.",
         required = true,
@@ -155,3 +155,4 @@ private fun transformStringReferences(transform: (str: String) -> String?) {
         }
     }
 }
+

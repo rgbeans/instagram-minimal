@@ -162,7 +162,7 @@ public final class Config {
      * see {@link Toasts}. Deliberately not a {@code block_*} key: it is not a
      * content surface, so the permanent lock must not freeze it.
      */
-    public static boolean arePopupsHidden() { return getBlocked("hide_toasts", true); }
+    public static boolean arePopupsHidden() { return getBlocked("hide_toasts", false); }
 
     /**
      * Bottom-navigation icon visibility, stored per tab as {@code nav_show_<tab>}
@@ -272,7 +272,7 @@ public final class Config {
         String stored = prefs == null ? "direct" : prefs.getString("landing_page", "direct");
         // The stored choice is kept as-is so re-showing the tab restores it, but a
         // landing page whose tab is hidden right now falls back to the home feed.
-        return isLandingAvailable(stored) ? stored : "home";
+        return "search".equals(stored) || "profile".equals(stored) ? stored : "direct";
     }
 
     public static void setLandingPage(String value) {
@@ -318,3 +318,4 @@ public final class Config {
 
     public static boolean isRestartPending() { return sNeedsRestart; }
 }
+

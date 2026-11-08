@@ -90,6 +90,7 @@ public final class Block {
     /** Main hook: throw if this request should be blocked. */
     public static void throwIfBlocked(URI uri) throws IOException {
         if (uri == null) return;
+        if (MinimalPolicy.blocksRequest(uri)) throw blocked();
         String path = uri.getPath();
         if (path == null) return;
 
@@ -123,9 +124,7 @@ public final class Block {
         if (path.contains("/feed/injected_reels_media")
                 || path.contains("/logging/")
                 || path.contains("/async_ads_privacy/")
-                || path.contains("/async_critical_notices/")
                 || isMediaSeen(path)
-                || path.contains("/api/v1/fbupload/")
                 || path.contains("/api/v1/stats/")
                 || path.contains("/api/v1/commerce/")
                 || path.contains("/api/v1/shopping/")
@@ -141,7 +140,7 @@ public final class Block {
      */
     public static String replaceFeedItemType(String key) {
         if (key == null) return null;
-        boolean drop = (Config.isAdsBlocked() && equalsAny(key, AD_FEED_UNITS))
+        boolean drop = "media_or_ad".equals(key) || "media".equals(key) || (Config.isAdsBlocked() && equalsAny(key, AD_FEED_UNITS))
                 || (Config.isSuggestedBlocked() && equalsAny(key, SUGGESTED_FEED_UNITS));
         // Debug builds only (see DebugBridge): shows every unit type the timeline
         // actually contains and whether it was dropped — the way to tell a patch
@@ -174,3 +173,4 @@ public final class Block {
         return new IOException("Blocked by Feurstagram");
     }
 }
+

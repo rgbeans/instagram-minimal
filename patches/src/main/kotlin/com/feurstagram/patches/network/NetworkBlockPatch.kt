@@ -18,7 +18,7 @@ private const val BLOCK_CLASS = "Lcom/feurstagram/extension/Block;"
 // anchor the patch without version-specific names.
 internal object TigonStartRequestFingerprint : Fingerprint(
     definingClass = "Lcom/instagram/api/tigon/TigonServiceLayer;",
-    name = "startRequest",
+    name = "startRequestInternal",
 )
 
 @Suppress("unused")
@@ -52,3 +52,4 @@ val networkBlockPatch = bytecodePatch(
         }
     }
 }
+

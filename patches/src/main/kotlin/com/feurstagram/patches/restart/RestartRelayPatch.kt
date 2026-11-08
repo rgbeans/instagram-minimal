@@ -1,7 +1,7 @@
 package com.feurstagram.patches.restart
 
 import app.morphe.patcher.patch.resourcePatch
-import app.morphe.util.asSequence
+import com.feurstagram.patches.shared.asSequence
 import com.feurstagram.patches.shared.Constants.COMPATIBILITY_INSTAGRAM
 import org.w3c.dom.Element
 
@@ -50,3 +50,4 @@ val restartRelayPatch = resourcePatch(
         }
     }
 }
+

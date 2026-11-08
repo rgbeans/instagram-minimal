@@ -4,7 +4,7 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
 import app.morphe.patcher.patch.bytecodePatch
-import app.morphe.util.getReference
+import com.feurstagram.patches.shared.getReference
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -39,7 +39,7 @@ val limitFeedToFollowingPatch = bytecodePatch(
     name = "Limit feed to following profiles",
     description = "Optionally restricts the home feed to accounts you follow, by rewriting the " +
         "feed request's pagination header. Gated on the runtime toggle.",
-    default = true,
+    default = false,
 ) {
     compatibleWith(COMPATIBILITY_INSTAGRAM)
 
@@ -76,3 +76,4 @@ val limitFeedToFollowingPatch = bytecodePatch(
         }
     }
 }
+

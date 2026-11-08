@@ -1,0 +1,15 @@
+.gradle/
+**/build/
+local.properties
+tools/*.jar
+tools/morphe-data/
+*.apk
+*.apkm
+*.xapk
+*.apks
+*.keystore
+*.jks
+*.p12
+*.idsig
+signing/
+.toolchain/

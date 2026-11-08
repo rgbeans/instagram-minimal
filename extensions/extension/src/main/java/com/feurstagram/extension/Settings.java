@@ -406,15 +406,12 @@ public final class Settings {
         root.addView(header);
 
         TextView title = new TextView(context);
-        title.setText("Feurstagram");
+        title.setText("Instagram Minimal");
         headline(title);
         header.addView(title);
 
         TextView subtitle = new TextView(context);
-        subtitle.setText(hardcore
-                ? "Permanent lock is on. You can tighten blocks but not loosen them. "
-                        + "Reinstall to fully unlock."
-                : "Choose what to hide. Tap Done to clear the cache and restart.");
+        subtitle.setText("Posts, Reels and Stories are blocked. Long-press Messages to open these settings.");
         body(subtitle);
         subtitle.setPadding(0, dp(context, 6), 0, 0);
         header.addView(subtitle);
@@ -434,26 +431,16 @@ public final class Settings {
         LinearLayout surfaces = addSection(context, column, "Blocked surfaces");
         addRow(context, surfaces, "Suggested accounts", "block_suggested", Config.isSuggestedBlocked());
         addRow(context, surfaces, "Ads", "block_ads", Config.isAdsBlocked());
-        addRow(context, surfaces, "Notifications button", "block_notifications",
-                Config.isNotificationsButtonBlocked());
         sealGroup(context, surfaces);
 
-        // Hiding a nav icon also takes its surface out of the landing-page picker,
-        // so the two sections have to stay in step while the panel is open.
-        final Runnable[] landingSync = new Runnable[1];
-        Runnable onNavChanged = () -> {
-            if (landingSync[0] != null) landingSync[0].run();
-        };
-
-        LinearLayout nav = addSection(context, column, "Navigation bar");
-        addRow(context, nav, "Search", "nav_show_search", Config.getBlocked("nav_show_search", true), onNavChanged);
-        addRow(context, nav, "Messages", "nav_show_direct", Config.getBlocked("nav_show_direct", true), onNavChanged);
-        addRow(context, nav, "Profile", "nav_show_profile", Config.getBlocked("nav_show_profile", true), onNavChanged);
-        sealGroup(context, nav);
-
-        LinearLayout feed = addSection(context, column, "Feed");
-        addRow(context, feed, "Following feed only", "limit_following_feed", Config.isFollowingFeedOnly());
-        sealGroup(context, feed);
+        Button notifications = makeButton(context, "Notifications", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
+        notifications.setOnClickListener(v -> {
+            dialog.dismiss();
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("instagram://news"));
+            intent.setPackage(context.getPackageName());
+            context.startActivity(intent);
+        });
+        column.addView(notifications, stackedButtonParams(context, 12));
 
         LinearLayout popups = addSection(context, column, "Popups");
         addRow(context, popups, "Instagram popups", "hide_toasts", Config.arePopupsHidden());
@@ -463,27 +450,13 @@ public final class Settings {
         addRow(context, display, "Force dark (disable HDR)", "force_sdr", Config.isForceSdr());
         sealGroup(context, display);
 
-        LinearLayout landing = addSection(context, column, "Landing page");
-        buildLandingOptions(context, landing, landingSync);
-        sealGroup(context, landing);
-
-        LinearLayout updates = addSection(context, column, "Updates");
-        sealGroup(context, updates);
-
-        Button checkUpdate = makeButton(context, "Check for updates", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
-        checkUpdate.setOnClickListener(v -> UpdateChecker.checkNow(context));
-        column.addView(checkUpdate, stackedButtonParams(context, 12));
-
-        addSectionLabel(context, column, "Support");
-
-        Button sponsors = makeButton(context, "Donate on GitHub Sponsors", 0, ON_SURFACE, false);
-        sponsors.setBackground(outlined(context, OUTLINE_VARIANT));
-        sponsors.setOnClickListener(v -> openUrl(context, "https://github.com/sponsors/jean-voila"));
-        column.addView(sponsors, stackedButtonParams(context, 0));
-
-        Button coffee = makeButton(context, "☕  Buy me a coffee", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
-        coffee.setOnClickListener(v -> openUrl(context, "https://buymeacoffee.com/jean_voila"));
-        column.addView(coffee, stackedButtonParams(context, 10));
+        addSectionLabel(context, column, "About");
+        TextView attribution = new TextView(context);
+        attribution.setText("Instagram Minimal is based on FeurStagramPaulo / Feurstagram. "
+                + "Patching uses Morphe; techniques also derive from Piko. GPLv3. "
+                + "Instagram still connects to Meta for account and messaging services.");
+        body(attribution);
+        column.addView(attribution);
 
         // Pinned action bar. Two equal pills rather than end-aligned buttons: it
         // cannot overflow, however narrow the screen or long the label.
@@ -493,20 +466,6 @@ public final class Settings {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         actionsLp.setMargins(0, dp(context, 12), 0, 0);
         root.addView(actions, actionsLp);
-
-        Button lock = makeButton(context, "Permanent lock", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
-        lock.setOnClickListener(v -> {
-            dialog.dismiss();
-            confirmHardcore(context);
-        });
-        if (hardcore) {
-            lock.setEnabled(false);
-            lock.setAlpha(0.38f);
-        }
-        actions.addView(lock, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-
-        View spacer = new View(context);
-        actions.addView(spacer, new LinearLayout.LayoutParams(dp(context, 8), 1));
 
         Button done = makeButton(context, "Done", PRIMARY, ON_PRIMARY, true);
         done.setOnClickListener(v -> {
@@ -978,3 +937,4 @@ public final class Settings {
         return divider;
     }
 }
+

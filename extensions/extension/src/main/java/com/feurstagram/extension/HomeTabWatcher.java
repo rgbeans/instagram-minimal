@@ -6,7 +6,7 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 
 /**
- * Watches the bottom tab bar until the "feed_tab" child (the Home button at the
+ * Watches the bottom tab bar until the "direct_tab" child (the Home button at the
  * bottom-left) is inflated, then installs a long-press listener on it that opens
  * the Feurstagram settings, and detaches.
  *
@@ -31,7 +31,7 @@ public final class HomeTabWatcher implements ViewTreeObserver.OnGlobalLayoutList
         Context context = bar.getContext();
         if (context == null) return;
 
-        int id = Hiders.resolveId(context, "feed_tab");
+        int id = Hiders.resolveId(context, "direct_tab");
         if (id == 0) return; // resource not found yet; keep waiting
 
         View homeTab = bar.getRootView().findViewById(id);
@@ -53,10 +53,12 @@ public final class HomeTabWatcher implements ViewTreeObserver.OnGlobalLayoutList
         // screens, so reaching here *is* "after the Instagram connection". The
         // guide waits for a screen clear of Instagram's own post-login popups
         // before it appears, so it is handed the bar and finds the tab itself.
-        Onboarding.maybeShow(bar);
+        // Upstream onboarding points at Home, which is absent in Minimal.
+        Config.setOnboardingDone();
 
         // Done: detach so we don't keep re-running on every layout pass.
         bar.getViewTreeObserver().removeOnGlobalLayoutListener(this);
         tabBar = null;
     }
 }
+

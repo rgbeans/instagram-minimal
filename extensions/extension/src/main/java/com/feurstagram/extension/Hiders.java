@@ -20,6 +20,7 @@ public final class Hiders {
     /** Install every UI hider and the landing redirect on the tab-bar root. */
     public static void installAll(ViewGroup root) {
         if (root == null) return;
+        ContentGuard.installWindow(root);
         ViewTreeObserver observer = root.getViewTreeObserver();
         // Notes tray, Instants entry-points.
         observer.addOnGlobalLayoutListener(new VisibilityHider(root, "block_notes", "cf_hub_recycler_view"));
@@ -242,3 +243,4 @@ public final class Hiders {
         }
     }
 }
+

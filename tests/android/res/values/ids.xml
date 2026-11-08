@@ -1,0 +1,13 @@
+<resources>
+    <item type="id" name="row_search_user_container"/>
+    <item type="id" name="row_search_user_username"/>
+    <item type="id" name="message_content_media_share_bubble_container"/>
+    <item type="id" name="direct_expiring_media_viewer_content"/>
+    <item type="id" name="cf_hub_recycler_view"/>
+    <item type="id" name="clips_tab"/>
+    <item type="id" name="feed_tab"/>
+    <item type="id" name="search_tab"/>
+    <item type="id" name="direct_tab"/>
+    <item type="id" name="profile_tab"/>
+    <item type="id" name="profile_tabs_container"/>
+</resources>

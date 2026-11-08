@@ -1,0 +1,9 @@
+{
+  "input_name": "instagram-454.0.0.54.77-arm64.xapk",
+  "sha256": "f049d39106f90a5d5d6c3294be4e8d98f1355067764b773c37270e607975ce07",
+  "base_certificates": [
+    "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+    "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+  ],
+  "package": "package: name='com.instagram.android' versionCode='386014758' versionName='454.0.0.54.77' platformBuildVersionName='17' platformBuildVersionCode='37' compileSdkVersion='37' compileSdkVersionCodename='17'"
+}

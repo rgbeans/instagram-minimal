@@ -1,7 +1,7 @@
 package com.feurstagram.patches.update
 
 import app.morphe.patcher.patch.resourcePatch
-import app.morphe.util.asSequence
+import com.feurstagram.patches.shared.asSequence
 import com.feurstagram.patches.shared.Constants.COMPATIBILITY_INSTAGRAM
 import org.w3c.dom.Element
 
@@ -14,7 +14,7 @@ val installPermissionPatch = resourcePatch(
     name = "Install-packages permission",
     description = "Declares REQUEST_INSTALL_PACKAGES so the update dialog can download " +
         "and install a new release directly instead of opening the browser.",
-    default = true,
+    default = false,
 ) {
     compatibleWith(COMPATIBILITY_INSTAGRAM)
 
@@ -34,3 +34,4 @@ val installPermissionPatch = resourcePatch(
         }
     }
 }
+
