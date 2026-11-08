@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['.github/workflows/android-stock-control.yml']
+    paths: ['.github/workflows/android-stock-control.yml', 'diagnostics/run-stock-control.sh']
 permissions:
   contents: read
 jobs:
@@ -21,6 +21,9 @@ jobs:
       - name: Prepare SDK and verified stock input
         shell: bash
         run: |
+          # This is an ephemeral hosted runner; retain Java and remove unused SDK/tool caches.
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h "$RUNNER_TEMP"
           export ANDROID_HOME="$RUNNER_TEMP/android-sdk"
           export ANDROID_SDK_ROOT="$ANDROID_HOME"
           mkdir -p "$ANDROID_HOME/cmdline-tools" build/input build/stock-control
@@ -57,14 +60,14 @@ jobs:
       - name: Run unchanged stock application
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          api-level: 35
           target: google_apis
           arch: x86_64
           cores: 2
           ram-size: 3072M
           disk-size: 3072M
           disable-linux-hw-accel: false
-          emulator-boot-timeout: 300
+          emulator-boot-timeout: 240
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none -accel on
           pre-emulator-launch-script: bash ci/free-emulator-space.sh
           script: bash diagnostics/run-stock-control.sh
@@ -75,5 +78,7 @@ jobs:
           path: |
             build/stock-control/*.txt
             build/stock-control/*.json
+            build/stock-control/*.xml
+            build/stock-control/*.png
           if-no-files-found: warn
           retention-days: 7

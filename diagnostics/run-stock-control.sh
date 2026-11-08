@@ -5,15 +5,22 @@ trap 'adb logcat -d -t 3000 > "$OUT/logcat.txt" 2>/dev/null || true' EXIT
 test "$(adb shell getprop ro.kernel.qemu | tr -d '\r')" = 1
 adb shell settings put global verifier_verify_adb_installs 0
 adb shell settings put global package_verifier_enable 0
-adb install-multiple --no-incremental -r "$OUT/"*.apk | tee "$OUT/install.txt"
+adb shell getprop ro.product.cpu.abilist | tee "$OUT/abis.txt"
+adb shell getprop ro.dalvik.vm.native.bridge | tee "$OUT/native-bridge.txt"
+timeout 180 adb install-multiple --no-incremental -r "$OUT/"*.apk | tee "$OUT/install.txt"
 grep -q '^Success' "$OUT/install.txt"
 adb logcat -c
 adb shell am start -W -n com.instagram.android/com.instagram.android.activity.MainTabActivity | tee "$OUT/launch.txt"
 sleep 45
 adb shell pidof com.instagram.android > "$OUT/pid.txt" || true
+if test -s "$OUT/pid.txt"; then
+    timeout 30 adb shell uiautomator dump /sdcard/stock-startup.xml || true
+    timeout 15 adb pull /sdcard/stock-startup.xml "$OUT/startup.xml" || true
+    timeout 15 adb exec-out screencap -p > "$OUT/startup.png" || true
+fi
 adb logcat -d -t 3000 > "$OUT/logcat.txt"
 python3 - <<'PY'
-import json, pathlib, re
+import json, pathlib, re, xml.etree.ElementTree as ET
 p = pathlib.Path('build/stock-control')
 lines = (p/'logcat.txt').read_text(errors='replace').splitlines()
 pattern = re.compile(r'F DEBUG|FATAL|AndroidRuntime|ndk_translation|com.instagram.android|Fatal signal|Lacrima')
@@ -25,7 +32,14 @@ for i in sorted(selected):
     print(lines[i][:2000])
 result = {'stock_installed': True, 'stock_main_process_running_after_45s': bool((p/'pid.txt').read_text().strip()),
           'native_crash_lines': [line for line in lines if 'Fatal signal' in line]}
+nodes = []
+if (p/'startup.xml').exists():
+    nodes = [n for n in ET.parse(p/'startup.xml').getroot().iter('node')
+             if n.get('package') == 'com.instagram.android']
+result['visible_app_nodes'] = len(nodes)
+result['visible_text'] = sorted({n.get('text') for n in nodes if n.get('text')})
 (p/'result.json').write_text(json.dumps(result,indent=2)+'\n')
 print('STOCK_CONTROL_RESULT='+json.dumps(result))
+assert result['stock_main_process_running_after_45s'] and nodes, 'Stock Instagram did not render a usable startup UI'
 PY
 rm -f "$OUT/"*.apk
