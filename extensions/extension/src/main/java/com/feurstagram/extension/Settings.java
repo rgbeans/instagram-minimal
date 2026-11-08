@@ -113,8 +113,8 @@ public final class Settings {
         Context activity = getActivityContext(tabBar);
         // The follow card comes first after an install or update; "What's new"
         // waits until it is dismissed.
-        FollowPrompt.maybeShow(activity, () -> UpdateChecker.checkWhatsNew(activity));
-        UpdateChecker.check(activity);
+        // Minimal build: no upstream promotional or update prompts.
+        // Minimal build: upstream update checks disabled.
     }
 
     /** Unwrap a view's context down to the hosting Activity when possible. */
@@ -432,13 +432,6 @@ public final class Settings {
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         LinearLayout surfaces = addSection(context, column, "Blocked surfaces");
-        addRow(context, surfaces, "Home feed", "block_feed", Config.isFeedBlocked());
-        addRow(context, surfaces, "Explore", "block_explore", Config.isExploreBlocked());
-        addRow(context, surfaces, "Reels", "block_reels", Config.isReelsBlocked());
-        addRow(context, surfaces, "Friends in Reels", "block_friends_lane", Config.isFriendsLaneBlocked());
-        addRow(context, surfaces, "Stories", "block_stories", Config.isStoriesBlocked());
-        addRow(context, surfaces, "Instants", "block_instants", Config.isInstantsBlocked());
-        addRow(context, surfaces, "Notes", "block_notes", Config.isNotesBlocked());
         addRow(context, surfaces, "Suggested accounts", "block_suggested", Config.isSuggestedBlocked());
         addRow(context, surfaces, "Ads", "block_ads", Config.isAdsBlocked());
         addRow(context, surfaces, "Notifications button", "block_notifications",
@@ -454,8 +447,6 @@ public final class Settings {
 
         LinearLayout nav = addSection(context, column, "Navigation bar");
         addRow(context, nav, "Search", "nav_show_search", Config.getBlocked("nav_show_search", true), onNavChanged);
-        addRow(context, nav, "Reels", "nav_show_reels", Config.getBlocked("nav_show_reels", false), onNavChanged);
-        addRow(context, nav, "Create", "nav_show_create", Config.getBlocked("nav_show_create", true), onNavChanged);
         addRow(context, nav, "Messages", "nav_show_direct", Config.getBlocked("nav_show_direct", true), onNavChanged);
         addRow(context, nav, "Profile", "nav_show_profile", Config.getBlocked("nav_show_profile", true), onNavChanged);
         sealGroup(context, nav);
@@ -477,7 +468,6 @@ public final class Settings {
         sealGroup(context, landing);
 
         LinearLayout updates = addSection(context, column, "Updates");
-        addRow(context, updates, "Automatic update check", "auto_update", Config.isAutoUpdateEnabled());
         sealGroup(context, updates);
 
         Button checkUpdate = makeButton(context, "Check for updates", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
