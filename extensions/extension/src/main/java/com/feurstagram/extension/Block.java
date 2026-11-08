@@ -99,13 +99,19 @@ public final class Block {
         if (DebugBridge.isNetworkTraceEnabled()) Log.i("FeurNet", path);
 
         // --- Toggleable content blocks ---
-        if (Config.isFeedBlocked() && path.contains("/feed/timeline/")) throw blocked();
+        if (Config.isFeedBlocked() && (path.contains("/feed/timeline/")
+                || path.contains("/feed/tag/")
+                || path.contains("/feed/location/"))) throw blocked();
         if (Config.isStoriesBlocked() && (path.contains("/feed/reels_tray") || path.contains("/feed/user/") && path.contains("/story") || path.contains("/stories/reel/"))) throw blocked();
-        if (Config.isExploreBlocked() && path.contains("/discover/topical_explore")) throw blocked();
+        if (Config.isExploreBlocked() && (path.contains("/discover/topical_explore")
+                || path.contains("/discover/explore_grid")
+                || path.contains("/discover/explore/")
+                || path.contains("/discover/stream/"))) throw blocked();
         if (Config.isReelsBlocked()
                 && (path.contains("/clips/home/")
                 || path.contains("/clips/discover")
-                || path.contains("/clips/get_blend_medias/"))) {
+                || path.contains("/clips/get_blend_medias/")
+                || path.contains("/clips/connected/"))) {
             throw blocked();
         }
         if (Config.isSuggestedBlocked() && containsAny(path, SUGGESTED)) throw blocked();
