@@ -11,7 +11,8 @@ A signed ARM64 APK has been built from Meta-signed Instagram **454.0.0.54.77**, 
 - Force feed, Explore media, Reels and Stories blocking, including preferences restored from older installations.
 - Hide Home, Reels and Create navigation, profile media tabs/grids, story trays/highlights, and known shared-media cards.
 - Apply fragment guards before drawing, including cached media viewers. Restrict native typeahead result rows to account rows.
-- Sanitize Instagram media URLs read through incoming intents; preserve account and DM links.
+- Sanitize Instagram media URLs read through incoming intents, including unreadable foreign extras; preserve account and DM links.
+- Preserve account-row click and accessibility state when search result views are recycled.
 - Keep Notes, DMs, direct photo views, account search entry, profiles, and account management available by design. Long-press Messages for settings; Notifications is available there.
 - Block known nonessential logging/analytics and media endpoints while allowing messaging uploads, read receipts, Notes, user lookup, friendships, push registration, login and security notices.
 - Disable upstream promotional/update prompts and omit the updater install permission patch.
@@ -49,7 +50,7 @@ bash scripts/test-apk.sh
 bash scripts/run-android-tests.sh
 ```
 
-CI repeats the build and policy checks, verifies that all 31 DEX hashes match the delivered APK, and runs Android guard and startup tests. The matching rebuild installs, but both patched and unmodified Meta-signed Instagram crash in the same native startup thread under this emulator's ARM64 translation. See the test report for the failure evidence and limits; a physical ARM64 acceptance test remains necessary.
+CI repeats the build, passes 69 policy checks and 27 Android guard checks, and verifies that all 31 DEX hashes match the delivered APK. On Android 15, the matching rebuild installs and navigates from the welcome UI to the login form. Both patched and unmodified stock Instagram required one cold-start ANR Wait recovery in this emulator. No credentials were entered; physical ARM64 and signed-in acceptance tests remain necessary. See the test report for the evidence and limits.
 
 The policy suite runs without an account. Android guard tests use an isolated fixture app with real Android Views and Intents. Full DMs, Notes, account search, follows, notifications, profile editing, media bypass routes, and login/2FA require a signed-in acceptance pass.
 
