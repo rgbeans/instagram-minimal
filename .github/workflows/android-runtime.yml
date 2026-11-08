@@ -31,6 +31,8 @@ jobs:
           distribution: temurin
           java-version: '21.0.13'
       - name: Prepare Android and patching tools
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           export ANDROID_HOME="$RUNNER_TEMP/android-sdk"
@@ -49,7 +51,7 @@ jobs:
           echo "$ANDROID_HOME/emulator" >> "$GITHUB_PATH"
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0'
-          curl --fail --location --retry 3 --header 'Accept: application/octet-stream' -o "$RUNNER_TEMP/gradle.zip" https://api.github.com/repos/gradle/gradle-distributions/releases/assets/407375534
+          curl --fail --location --retry 3 --header 'Accept: application/octet-stream' --header "Authorization: Bearer $GH_TOKEN" -o "$RUNNER_TEMP/gradle.zip" https://api.github.com/repos/gradle/gradle-distributions/releases/assets/407375534
           echo "553c78f50dafcd54d65b9a444649057857469edf836431389695608536d6b746  $RUNNER_TEMP/gradle.zip" | sha256sum -c -
           unzip -q "$RUNNER_TEMP/gradle.zip" -d "$RUNNER_TEMP"
           echo "GRADLE_BIN=$RUNNER_TEMP/gradle-9.5.0/bin/gradle" >> "$GITHUB_ENV"

@@ -8,7 +8,11 @@ fetch() {
     local url="$1" checksum="$2" dest="$3"
     if [ -f "$dest" ] && echo "$checksum  $dest" | sha256sum -c - >/dev/null 2>&1; then return; fi
     echo "Downloading ${dest##*/}"
-    curl --fail --location --retry 3 --header 'Accept: application/octet-stream' --output "$dest.part" "$url"
+    local headers=(--header 'Accept: application/octet-stream')
+    if [[ "$url" = https://api.github.com/* && -n "${GH_TOKEN:-}" ]]; then
+        headers+=(--header "Authorization: Bearer $GH_TOKEN")
+    fi
+    curl --fail --location --retry 3 "${headers[@]}" --output "$dest.part" "$url"
     echo "$checksum  $dest.part" | sha256sum -c -
     mv "$dest.part" "$dest"
 }
