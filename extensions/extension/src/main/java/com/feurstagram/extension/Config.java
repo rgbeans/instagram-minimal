@@ -50,6 +50,9 @@ public final class Config {
     }
 
     public static boolean getBlocked(String key, boolean defaultValue) {
+        if ("block_feed".equals(key) || "block_explore".equals(key) || "block_reels".equals(key) || "block_stories".equals(key)) return true;
+        if ("block_notes".equals(key) || "block_instants".equals(key) || "nav_show_reels".equals(key) || "nav_show_create".equals(key)) return false;
+        if ("nav_show_search".equals(key) || "nav_show_direct".equals(key) || "nav_show_profile".equals(key)) return true;
         SharedPreferences prefs = prefs();
         return prefs == null ? defaultValue : prefs.getBoolean(key, defaultValue);
     }
@@ -57,7 +60,7 @@ public final class Config {
     public static void setBlocked(String key, boolean value) {
         if (("block_feed".equals(key) || "block_explore".equals(key) || "block_reels".equals(key) || "block_stories".equals(key)) && !value) return;
         if ("block_notes".equals(key) && value) return;
-        if ("nav_show_reels".equals(key) && value) return;
+        if (("nav_show_reels".equals(key) || "nav_show_create".equals(key)) && value) return;
         // Hardcore lock only forbids *revealing* a surface. Hiding one is always
         // allowed so users can still tighten. A surface may be revealed only when
         // it was already visible at the start of the current settings session
@@ -188,7 +191,7 @@ public final class Config {
 
     /** Only Reels defaults to hidden; see {@link #isReelsTabShown()}. */
     public static boolean navDefault(String key) {
-        return !"nav_show_reels".equals(key);
+        return !"nav_show_reels".equals(key) && !"nav_show_create".equals(key);
     }
 
     /** Whether the bottom-bar icon for a {@code nav_show_*} key is currently shown. */
