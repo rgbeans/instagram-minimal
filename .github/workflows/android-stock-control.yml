@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['.github/workflows/android-stock-control.yml', 'diagnostics/run-stock-control.sh']
+    paths: ['.github/workflows/android-stock-control.yml', 'diagnostics/run-stock-control.sh', 'diagnostics/probe-startup.py']
 permissions:
   contents: read
 jobs:

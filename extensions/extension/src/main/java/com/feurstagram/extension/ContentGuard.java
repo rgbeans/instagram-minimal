@@ -95,7 +95,9 @@ public final class ContentGuard {
             View child = group.getChildAt(i);
             // Search result rows must contain a native account-row identifier.
             // Headers, hashtags, places, media tiles, and unknown mixed rows stay hidden.
-            if (results && !hasAccountRow(child)) hide(child);
+            // Rows can be recycled into account results. GONE already prevents
+            // interaction; keep their native click/accessibility state for reuse.
+            if (results && !hasAccountRow(child)) child.setVisibility(View.GONE);
             else {
                 if (results) child.setVisibility(View.VISIBLE);
                 scrub(child, accountsOnly);

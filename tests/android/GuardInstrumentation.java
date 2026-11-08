@@ -21,6 +21,10 @@ public class GuardInstrumentation extends Instrumentation {
         public View getView() { return view; }
         public String getModuleName() { return module; }
     }
+    private static class UnreadableExtrasIntent extends Intent {
+        UnreadableExtrasIntent(String url) { super(Intent.ACTION_VIEW, Uri.parse(url)); }
+        @Override public Bundle getExtras() { throw new android.os.BadParcelableException("Unreadable foreign extras"); }
+    }
     @Override public void onCreate(Bundle args) { super.onCreate(args); start(); }
     @Override public void onStart() {
         Bundle result=new Bundle();
@@ -58,6 +62,40 @@ public class GuardInstrumentation extends Instrumentation {
         check(search.getVisibility()==View.VISIBLE,"account search entry visible");
         check(dm.getVisibility()==View.VISIBLE,"DM entry visible");
         check(profile.getVisibility()==View.VISIBLE,"profile entry visible");
+        LinearLayout searchRoot = new LinearLayout(a);
+        ListView results = new ListView(a);
+        LinearLayout[] rows = {new LinearLayout(a), new LinearLayout(a)};
+        child(a, rows[0], "row_search_user_username");
+        rows[1].addView(new View(a));
+        rows[1].setClickable(true);
+        rows[1].setLongClickable(true);
+        rows[1].setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        results.setAdapter(new BaseAdapter() {
+            public int getCount() { return rows.length; }
+            public Object getItem(int position) { return rows[position]; }
+            public long getItemId(int position) { return position; }
+            public View getView(int position, View convert, android.view.ViewGroup parent) {
+                rows[position].setMinimumHeight(96);
+                return rows[position];
+            }
+        });
+        searchRoot.addView(results);
+        a.setContentView(searchRoot);
+        results.measure(View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY));
+        results.layout(0, 0, 400, 400);
+        check(results.getChildCount()==2,"search fixture contains both result types");
+        ContentGuard.onFragmentViewCreated(new FakeFragment(searchRoot,"search_typeahead"));
+        check(rows[0].getVisibility()==View.VISIBLE,"account result visible");
+        check(rows[1].getVisibility()==View.GONE,"unknown media result hidden");
+        rows[1].removeAllViews();
+        child(a, rows[1], "row_search_user_username");
+        searchRoot.getViewTreeObserver().dispatchOnPreDraw();
+        check(rows[1].getVisibility()==View.VISIBLE,"recycled account result restored");
+        check(rows[1].isClickable(),"recycled account result remains clickable");
+        check(rows[1].isLongClickable(),"recycled account result retains long click");
+        check(rows[1].getImportantForAccessibility()==View.IMPORTANT_FOR_ACCESSIBILITY_YES,
+                "recycled account result remains accessible");
         View viewer=new View(a);
         ContentGuard.onFragmentViewCreated(new FakeFragment(viewer,"clips_viewer_clips_tab"));
         check(viewer.getVisibility()==View.INVISIBLE,"cached reel fragment hidden");
@@ -77,6 +115,12 @@ public class GuardInstrumentation extends Instrumentation {
         NavigationGuard.filterIntent(user);
         check("instagram://user?username=dean".equals(user.getDataString()),"profile link preserved");
         check(NavigationGuard.filterIntent(null)==null,"null intent");
+        Intent foreignPost = new UnreadableExtrasIntent("https://instagram.com/p/ABC/");
+        NavigationGuard.filterIntent(foreignPost);
+        check("instagram://direct-inbox".equals(foreignPost.getDataString()),"unreadable extras cannot bypass a media URL block");
+        Intent foreignAccount = new UnreadableExtrasIntent("instagram://user?username=dean");
+        NavigationGuard.filterIntent(foreignAccount);
+        check("instagram://user?username=dean".equals(foreignAccount.getDataString()),"unreadable extras preserve an allowed account URL");
         a.getSharedPreferences("feurstagram_prefs",0).edit().putBoolean("block_reels",false).putBoolean("block_notes",true).commit();
         check(Config.getBlocked("block_reels",false),"old preferences cannot reveal reels");
         check(!Config.getBlocked("block_notes",true),"old preferences cannot hide Notes");

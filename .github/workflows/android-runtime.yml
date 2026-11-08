@@ -10,6 +10,8 @@ on:
       - 'scripts/**'
       - 'extensions/**'
       - 'patches/**'
+      - 'tests/**'
+      - 'diagnostics/probe-startup.py'
 
 permissions:
   contents: read
@@ -35,6 +37,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          # Remove unrelated preinstalled tools from this ephemeral hosted runner.
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h "$RUNNER_TEMP"
           export ANDROID_HOME="$RUNNER_TEMP/android-sdk"
           export ANDROID_SDK_ROOT="$ANDROID_HOME"
           mkdir -p "$ANDROID_HOME/cmdline-tools"
@@ -85,14 +90,14 @@ jobs:
       - name: Run Android guard and full-app startup tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          api-level: 35
           target: google_apis
           arch: x86_64
           cores: 2
           ram-size: 3072M
           disk-size: 3072M
           disable-linux-hw-accel: false
-          emulator-boot-timeout: 300
+          emulator-boot-timeout: 240
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none -accel on
           pre-emulator-launch-script: bash ci/free-emulator-space.sh
           script: |

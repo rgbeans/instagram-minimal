@@ -14,11 +14,14 @@ public final class NavigationGuard {
         if (intent == null) return null;
         try {
             boolean blocked = intent.getData() != null && MinimalPolicy.blocksLink(intent.getDataString());
+            // Sanitize known media data before touching foreign, possibly unreadable extras.
+            if (blocked) intent.setData(Uri.parse(SAFE));
             Bundle extras = intent.getExtras();
             if (extras != null) for (String key : URL_KEYS) {
                 Object value = extras.get(key);
                 if (value != null && MinimalPolicy.blocksLink(value.toString())) {
                     blocked = true;
+                    intent.setData(Uri.parse(SAFE));
                     intent.putExtra(key, SAFE);
                 }
             }
