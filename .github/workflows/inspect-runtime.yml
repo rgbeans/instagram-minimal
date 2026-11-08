@@ -1,0 +1,53 @@
+name: Inspect latest Android runtime log
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/inspect-runtime.yml']
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Read latest runtime evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          curl --fail --location --header "Authorization: Bearer $GH_TOKEN" -o artifacts.json 'https://api.github.com/repos/rgbeans/instagram-minimal/actions/artifacts?name=android-runtime-evidence&per_page=1'
+          python3 - <<'PY'
+          import json, pathlib
+          items = json.loads(pathlib.Path('artifacts.json').read_text())['artifacts']
+          assert items, 'No runtime evidence is available'
+          item = items[0]
+          print('Inspecting artifact', item['id'], 'from run', item['workflow_run']['id'])
+          pathlib.Path('artifact-id.txt').write_text(str(item['id']))
+          PY
+          artifact_id="$(cat artifact-id.txt)"
+          curl --fail --location --header "Authorization: Bearer $GH_TOKEN" -o evidence.zip "https://api.github.com/repos/rgbeans/instagram-minimal/actions/artifacts/$artifact_id/zip"
+          python3 - <<'PY'
+          import re, zipfile
+          with zipfile.ZipFile('evidence.zip') as archive:
+              print('Evidence files:', ', '.join(archive.namelist()))
+              for name in archive.namelist():
+                  if not name.endswith('.txt'):
+                      continue
+                  lines = archive.read(name).decode(errors='replace').splitlines()
+                  if name.endswith('logcat.txt'):
+                      pattern = re.compile(r'FATAL|AndroidRuntime|crash_dump|VerifyError|NoSuchMethod|UnsatisfiedLink|ndk_translation|am_crash|com.instagram.android.minimal|Fatal signal|Abort message')
+                      selected = set()
+                      for i, line in enumerate(lines):
+                          if pattern.search(line):
+                              selected.update(range(max(0,i-6), min(len(lines),i+12)))
+                      lines = [lines[i] for i in sorted(selected)]
+                  print('BEGIN', name)
+                  for line in lines[-1600:]:
+                      print(line[:2000])
+                  print('END', name)
+          PY
