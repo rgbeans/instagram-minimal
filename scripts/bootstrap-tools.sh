@@ -12,11 +12,11 @@ fetch() {
     echo "$checksum  $dest.part" | sha256sum -c -
     mv "$dest.part" "$dest"
 }
-fetch 'https://github.com/MorpheApp/morphe-desktop/releases/download/v1.11.0/morphe-desktop-1.11.0-all.jar' \
+fetch 'https://api.github.com/repos/MorpheApp/morphe-desktop/releases/assets/476436105' \
  '85c222421f07bb67098d191b9870323199fea871ddab53fcd6de915ca70e5fe6' "$ROOT/tools/morphe-desktop-1.11.0-all.jar"
 fetch 'https://api.github.com/repos/REAndroid/APKEditor/releases/assets/424133344' \
  'a9cd40df818845456be6d696de6110c89edf4b0a0580cb83438ed6b25a366e67' "$ROOT/tools/APKEditor-1.4.9.jar"
-fetch 'https://github.com/JetBrains/kotlin/releases/download/v2.4.21/kotlin-compiler-2.4.21.zip' \
+fetch 'https://api.github.com/repos/JetBrains/kotlin/releases/assets/621287401' \
  '7cc140e76daf416a0424a5557f99afd7ca89ebd463ea1101261e3e01c33e75cd' "$CACHE/kotlin.zip"
 python3 - "$CACHE" <<'PY'
 import pathlib,sys,zipfile
