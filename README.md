@@ -4,7 +4,7 @@ Private experimental Android patch fork of [FeurStagramPaulo](https://github.com
 
 A signed ARM64 APK has been built from Meta-signed Instagram **454.0.0.54.77**, build **386014758**. Its package is `com.instagram.android.minimal`, so it installs alongside official Instagram. Android 9 or newer is required.
 
-**Status: experimental; full Instagram startup and signed-in behavior remain unverified.** See [the test report](docs/TEST_REPORT.md). Do not interpret a successful build or the guard tests as proof that every Instagram feature works.
+**Status: experimental; physical ARM64 startup and signed-in behavior remain unverified.** See [the test report](docs/TEST_REPORT.md). Do not interpret a successful build or the guard tests as proof that every Instagram feature works.
 
 ## Implemented changes
 
@@ -48,6 +48,8 @@ bash scripts/test-apk.sh
 # With a booted Android device/emulator connected over ADB:
 bash scripts/run-android-tests.sh
 ```
+
+CI repeats the build and policy checks, verifies that all 31 DEX hashes match the delivered APK, and runs Android guard and startup tests. The matching rebuild installs, but both patched and unmodified Meta-signed Instagram crash in the same native startup thread under this emulator's ARM64 translation. See the test report for the failure evidence and limits; a physical ARM64 acceptance test remains necessary.
 
 The policy suite runs without an account. Android guard tests use an isolated fixture app with real Android Views and Intents. Full DMs, Notes, account search, follows, notifications, profile editing, media bypass routes, and login/2FA require a signed-in acceptance pass.
 
