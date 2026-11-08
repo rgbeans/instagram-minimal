@@ -88,8 +88,9 @@ jobs:
           arch: x86_64
           cores: 2
           ram-size: 3072M
+          disk-size: 3072M
           disable-linux-hw-accel: false
-          emulator-boot-timeout: 600
+          emulator-boot-timeout: 300
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none -accel on
           script: |
             bash scripts/run-android-tests.sh
