@@ -23,9 +23,10 @@ jobs:
       - name: Read latest runtime evidence
         env:
           GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ inputs.artifact_id || '13611807784' }}
         shell: bash
         run: |
-          artifact_id="${{ inputs.artifact_id || '13611807784' }}"
+          artifact_id="$ARTIFACT_ID"
           [[ "$artifact_id" =~ ^[0-9]+$ ]]
           echo "Inspecting artifact $artifact_id"
           curl --fail --location --header "Authorization: Bearer $GH_TOKEN" -o evidence.zip "https://api.github.com/repos/rgbeans/instagram-minimal/actions/artifacts/$artifact_id/zip"
@@ -38,7 +39,7 @@ jobs:
                       continue
                   lines = archive.read(name).decode(errors='replace').splitlines()
                   if name.endswith('logcat.txt'):
-                      pattern = re.compile(r'FATAL|AndroidRuntime|crash_dump|VerifyError|NoSuchMethod|UnsatisfiedLink|ndk_translation|am_crash|com.instagram.android.minimal|Fatal signal|Abort message')
+                      pattern = re.compile(r'F DEBUG|FATAL|AndroidRuntime|crash_dump|VerifyError|NoSuchMethod|UnsatisfiedLink|ndk_translation|am_crash|com.instagram.android.minimal|Fatal signal|Abort message')
                       selected = set()
                       for i, line in enumerate(lines):
                           if pattern.search(line):
