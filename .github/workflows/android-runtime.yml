@@ -94,6 +94,7 @@ jobs:
           disable-linux-hw-accel: false
           emulator-boot-timeout: 300
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none -accel on
+          pre-emulator-launch-script: bash ci/free-emulator-space.sh
           script: |
             bash scripts/run-android-tests.sh
             bash ci/verify-runtime.sh
