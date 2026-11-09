@@ -1,48 +1,22 @@
-# Instagram Minimal — test report
+# Instagram Minimal — chat update test report
 
-Updated November 8, 2026. **Signed APK delivered; signed-out UI verified. Authenticated features and physical ARM64 operation remain unverified.**
+This APK updates the previous installation using the same package and signing certificate.
 
 | Check | Result |
 |---|---|
-| Build and patching | Passed with JDK 21.0.13, Gradle 9.5.0, Android SDK 36; **9 patches applied, 0 failed** |
-| Policy regression suite | **69 passed** |
-| Android guard fixture | **27 passed** on Android 15/API 35, including account-only result filtering, recycled-row interaction/accessibility, malformed intent extras, media visibility, Notes/DM-photo visibility and mandatory preferences |
-| APK structure | Passed: 31 DEX files, 222,132 unique classes, no duplicate classes, injected calls resolve; network/intent/fragment hooks present |
-| Integrity and signing | ZIP CRC, APK signature and 16 KiB ZIP alignment passed; original signing certificate retained |
-| CI rebuild comparison | **All 31 DEX hashes exactly match the delivered APK.** CI uses a separate disposable signing key |
-| Installation and signed-out navigation | Matching rebuild installed, displayed the welcome UI, and navigated to a visible password field without entering credentials; no native crash captured |
-| Cold startup | **One ANR dialog required selecting Wait.** Unmodified stock Instagram required the same recovery and then reached the login form. This is recorded as a limitation, not an ANR-free startup pass |
-| Licensing | Upstream LICENSE/NOTICE preserved byte-for-byte inside the APK |
-| Telemetry | Known endpoint rules tested; comprehensive traffic/native-network elimination is not verified |
+| Build | Verified Meta-signed Instagram 454.0.0.54.77 before patching. Built with JDK 21.0.13, Gradle 9.5.0, Android SDK 36. Eleven patches applied; none failed. |
+| Policy suite | 86 passed. |
+| APK checks | 31 DEX files, 222,145 unique classes, all injected extension calls resolve. ZIP integrity, APK signature and 16 KiB alignment passed. |
+| Notifications and chat hooks | The APK declares the `instagram://news` route and contains 71 chat card hooks and two secure-window hooks. |
+| Licensing | Upstream LICENSE and NOTICE match the source files byte for byte. |
+| Android 15 emulator | 43 Android guard checks passed. All 31 DEX hashes in the independently rebuilt APK match the delivered APK. The rebuild installed and reached the password field after selecting Wait once on a cold-start ANR dialog. The earlier stock control required the same recovery. |
 
-The Android tests use an isolated fixture app with real Views and Intents. They do not establish that every server-dependent Instagram layout is filtered correctly.
+The Android fixture exercises the Notifications bell placement and intent, post card hiding and recycling, and capture flags for ordinary chats and disappearing content. The Instagram startup check does not use account credentials. The live notifications list, server-provided chat layouts, capture on a physical phone, and other signed-in features still need a device check. Known endpoint rules were exercised; total telemetry elimination was not measured.
 
-The earlier Android 11 image crashed in native startup for both stock and patched Instagram. Android 15 avoids that captured native crash and provides a usable signed-out baseline after the recorded Wait recovery. Tests used an x86_64 emulator with ARM64 translation; no physical ARM64 device was connected.
+Package `com.instagram.android.minimal` · Instagram 454.0.0.54.77 / 386014758 · ARM64 · 163,074,152 bytes.
 
-## Changes in this build
+APK SHA-256: `887bb400b050d5502a685793177b8fff9454541e03042400cb32470964c3a975`
 
-- Recycled search rows retain native click, long-click and accessibility state when they become account results.
-- Known blocked media URLs are sanitized before foreign extras are read, closing the malformed-extras bypass.
+Signing certificate SHA-256: `4c7594fdd01305694065a530398610a255678df9bc9f36e0dcebc36288018de4`
 
-## Still unverified
-
-Physical-device startup; authenticated login/2FA; DMs and attachments; Notes; account search results; follows/following; notifications/push; profile/account editing; all media routes through DMs, profiles, search and deep links. Complete telemetry elimination is not claimed.
-
-## Evidence
-
-- [69 policy checks, 27 Android checks, exact DEX comparison and patched login navigation](https://github.com/rgbeans/instagram-minimal/actions/runs/42522125392)
-- [Unmodified stock control with the same cold-start recovery](https://github.com/rgbeans/instagram-minimal/actions/runs/42522125504)
-
-Both runs recorded one Wait recovery, visible login UI, and no native crash. No account credentials were entered. Evidence artifacts are retained for seven days.
-
-## APK identity
-
-Package: `com.instagram.android.minimal` · Instagram 454.0.0.54.77/build 386014758 · ARM64 · Android 9+ · 162,771,048 bytes.
-
-APK SHA-256:
-`6668675a3afcd823a75110ec3de8813598957496ee5448d87735c2f6d14bd9d2`
-
-Signing certificate SHA-256:
-`4c7594fdd01305694065a530398610a255678df9bc9f36e0dcebc36288018de4`
-
-[Application and test source](https://github.com/rgbeans/instagram-minimal/commit/731ac4d864be279846cb79b724e3236d6c33f14e). The private signing backup is unchanged and is not committed to Git.
+[Source commit](https://github.com/rgbeans/instagram-minimal/commit/5f191ba6f10b4ce3341e2597f0200a3492467e48) · [Android runtime evidence](https://github.com/rgbeans/instagram-minimal/actions/runs/42540636765)
