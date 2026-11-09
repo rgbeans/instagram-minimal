@@ -49,6 +49,16 @@ public final class MinimalPolicyTest {
         check(MinimalPolicy.blocksModule("direct_inbox"), false, "DM module");
         check(MinimalPolicy.blocksModule("newsfeed_you"), false, "notifications module");
         check(MinimalPolicy.blocksModule("edit_profile"), false, "account management");
+        check("about:blank".equals(MinimalPolicy.filterWebUrl("https://instagram.com/p/ABC/")), true, "web post blocked");
+        check("about:blank".equals(MinimalPolicy.filterWebUrl("https://instagram.com/reel/ABC/")), true, "web reel blocked");
+        check("https://example.com/".equals(MinimalPolicy.filterWebUrl("https://example.com/")), true, "external web link allowed");
+        check("https://instagram.com/dean/".equals(MinimalPolicy.filterWebUrl("https://instagram.com/dean/")), true, "account web link allowed");
+        check("instagram://news".equals(MinimalPolicy.filterWebUrl("instagram://news")), true, "notifications route allowed");
+        check(MinimalPolicy.filterWebUrl(null) == null, true, "null web URL");
+        for (String type : new String[]{"MEDIA_SHARE", "XMA_MEDIA_SHARE", "CLIPS_SHARE", "XMA_CLIPS_SHARE", "STORY_SHARE"})
+            check(MinimalPolicy.blocksSharedMessage(type), true, type + " hidden");
+        for (String type : new String[]{"MEDIA", "VISUAL_MEDIA", "EXPIRING_MEDIA", "TEXT", "VOICE_MEDIA", "XMA_LINK"})
+            check(MinimalPolicy.blocksSharedMessage(type), false, type + " preserved");
         System.out.println("PASS " + count + " policy regression checks");
     }
 }

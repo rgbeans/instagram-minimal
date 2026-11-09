@@ -3,10 +3,20 @@ package com.feurstagram.extension;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.util.Locale;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /** Pure policy, shared by network/navigation hooks and host regression tests. */
 public final class MinimalPolicy {
     private MinimalPolicy() {}
+    private static final Set<String> SHARED_MEDIA = new HashSet<>(Arrays.asList(
+            "MEDIA_SHARE", "XMA_MEDIA_SHARE", "MEDIA_MENTION", "REEL_SHARE", "XMA_REEL_SHARE",
+            "XMA_REEL_MENTION", "STORY_SHARE", "XMA_STORY_SHARE", "XMA_STORY_MENTION",
+            "CLIPS_SHARE", "XMA_CLIPS_SHARE", "CLIPS_MENTION", "CLIPS_PREVIEW_SHARE",
+            "FELIX_SHARE", "XMA_FELIX_SHARE", "REPOST_SHARE", "REPOST_REPLY", "COMMENT_RESHARE"));
+
+    public static boolean blocksSharedMessage(String type) { return SHARED_MEDIA.contains(type); }
 
     public static boolean blocksRequest(URI uri) {
         if (uri == null) return false;
@@ -47,6 +57,11 @@ public final class MinimalPolicy {
 
     /** Restrict Instagram media URLs, including wrapped and percent-encoded links. */
     public static boolean blocksLink(String text) { return blocksLink(text, 0); }
+
+    /** Web previews must not provide a second route to shared posts. */
+    public static String filterWebUrl(String text) {
+        return blocksLink(text) ? "about:blank" : text;
+    }
 
     private static boolean blocksLink(String text, int depth) {
         if (text == null || depth > 4) return false;

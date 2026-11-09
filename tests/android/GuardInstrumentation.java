@@ -17,9 +17,11 @@ public class GuardInstrumentation extends Instrumentation {
     public static class FakeFragment {
         private View view;
         private String module;
+        boolean resumed = true;
         FakeFragment(View view, String module) { this.view=view; this.module=module; }
         public View getView() { return view; }
         public String getModuleName() { return module; }
+        public boolean isResumed() { return resumed; }
     }
     private static class UnreadableExtrasIntent extends Intent {
         UnreadableExtrasIntent(String url) { super(Intent.ACTION_VIEW, Uri.parse(url)); }
@@ -124,5 +126,93 @@ public class GuardInstrumentation extends Instrumentation {
         a.getSharedPreferences("feurstagram_prefs",0).edit().putBoolean("block_reels",false).putBoolean("block_notes",true).commit();
         check(Config.getBlocked("block_reels",false),"old preferences cannot reveal reels");
         check(!Config.getBlocked("block_notes",true),"old preferences cannot hide Notes");
+        verifyChatControls((FixtureActivity) a);
+    }
+
+    private void layout(View root) {
+        root.measure(View.MeasureSpec.makeMeasureSpec(300, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(500, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, 300, 500);
+    }
+
+    private void verifyChatControls(FixtureActivity a) {
+        android.view.Window window = a.getWindow();
+        int secure = android.view.WindowManager.LayoutParams.FLAG_SECURE;
+        LinearLayout inbox = new LinearLayout(a);
+        LinearLayout header = new LinearLayout(a);
+        header.setId(id(a, "direct_inbox_action_bar"));
+        LinearLayout actions = new LinearLayout(a);
+        actions.setId(id(a, "action_bar_buttons_container_right"));
+        ImageButton compose = new ImageButton(a);
+        compose.setOnClickListener(v -> {});
+        actions.addView(compose, new LinearLayout.LayoutParams(48, 48));
+        header.addView(actions);
+        inbox.addView(header);
+        a.setContentView(inbox);
+        layout(inbox);
+        FakeFragment inboxFragment = new FakeFragment(inbox, "direct_inbox");
+        ContentGuard.onFragmentViewCreated(inboxFragment);
+        check(actions.getChildCount()==2 && actions.getChildAt(0)==compose && compose.isClickable(), "bell added beside compose");
+        View bell = actions.getChildAt(1);
+        check(bell instanceof ImageButton && ((ImageButton) bell).getDrawable()!=null
+                && "Notifications".contentEquals(bell.getContentDescription()), "accessible notifications icon");
+        inbox.getViewTreeObserver().dispatchOnPreDraw();
+        check(actions.getChildCount()==2,"one bell after repeated draws");
+        bell.performClick();
+        check(a.launchedIntent!=null && Intent.ACTION_VIEW.equals(a.launchedIntent.getAction())
+                && "instagram://news".equals(a.launchedIntent.getDataString())
+                && a.getPackageName().equals(a.launchedIntent.getPackage()), "bell opens this app's notifications");
+        check(ScreenCapture.skipRequest(window,"DirectInboxController"),"ordinary inbox permits capture");
+
+        inboxFragment.resumed = false;
+        inbox.getViewTreeObserver().dispatchOnPreDraw();
+        check(actions.getChildCount()==1 && !ScreenCapture.skipRequest(window,"DirectThreadController"),"bell and capture override leave with chat");
+        window.addFlags(secure); // native manager applies the request recorded above
+        LinearLayout thread = new LinearLayout(a);
+        a.setContentView(thread);
+        layout(thread);
+        FakeFragment threadFragment = new FakeFragment(thread,"direct_thread");
+        ContentGuard.onFragmentViewCreated(threadFragment);
+        check((window.getAttributes().flags & secure)==0,"ordinary thread clears a residual chat flag");
+        check(!ScreenCapture.skipRequest(window,"DirectVisualMessageViewerController")
+                && (window.getAttributes().flags & secure)!=0,"view-once capture protection restored immediately");
+        check(ScreenCapture.skipRelease(window,"DirectInboxController")
+                && !ScreenCapture.skipRelease(window,"DirectVisualMessageViewerController"),
+                "skipped ordinary request cannot release a protected request");
+        View disappearing = child(a,thread,"disappearing_mode_indicator_placeholder");
+        disappearing.setMinimumWidth(48);
+        disappearing.setMinimumHeight(48);
+        layout(thread);
+        thread.getViewTreeObserver().dispatchOnPreDraw();
+        check(!ScreenCapture.skipRequest(window,"DirectThreadController")
+                && (window.getAttributes().flags & secure)!=0,"disappearing chat stays protected");
+        disappearing.setVisibility(View.GONE);
+        thread.getViewTreeObserver().dispatchOnPreDraw();
+        check((window.getAttributes().flags & secure)==0,"ordinary capture restored after protected content closes");
+
+        View card = new View(a);
+        card.setClickable(true);
+        thread.addView(card);
+        SharedMessages.update(card,MinimalPolicy.blocksSharedMessage("XMA_MEDIA_SHARE"));
+        card.setVisibility(View.VISIBLE); // native binder restores visibility on its own
+        thread.getViewTreeObserver().dispatchOnPreDraw();
+        check(card.getVisibility()==View.GONE,"shared post remains hidden before drawing");
+        SharedMessages.update(card,MinimalPolicy.blocksSharedMessage("MEDIA"));
+        check(card.getVisibility()==View.VISIBLE && card.isClickable(),"recycled direct attachment stays usable");
+        LinearLayout richCard = new LinearLayout(a);
+        richCard.setId(id(a,"standard_dxma_message_container"));
+        thread.addView(richCard);
+        child(a,richCard,"message_content_media_share_bubble_container");
+        thread.getViewTreeObserver().dispatchOnPreDraw();
+        check(richCard.getVisibility()==View.GONE,"shared post container and its controls are hidden");
+        richCard.removeAllViews();
+        richCard.addView(new TextView(a));
+        thread.getViewTreeObserver().dispatchOnPreDraw();
+        check(richCard.getVisibility()==View.VISIBLE,"ordinary rich cards remain visible after recycling");
+        threadFragment.resumed = false;
+        thread.getViewTreeObserver().dispatchOnPreDraw();
+        check((window.getAttributes().flags & secure)!=0,"native capture flag restored on leaving chat");
+        ScreenCapture.skipRelease(window,"DirectThreadController");
+        window.clearFlags(secure);
     }
 }

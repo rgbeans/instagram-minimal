@@ -39,6 +39,7 @@ public final class ContentGuard {
                 module = String.valueOf(getter.invoke(fragment));
             }
             catch (ReflectiveOperationException ignored) {}
+            ChatControls.observe(fragment, view, module);
             boolean blocked = MinimalPolicy.blocksModule(module)
                     || name.equals("com.instagram.profile.fragment.ProfileMediaTabFragment")
                     || name.contains("ReelViewerFragment") || name.contains("ClipsViewerFragment")
@@ -79,7 +80,12 @@ public final class ContentGuard {
     }
 
     private static void scrub(View view, boolean accountsOnly) {
+        if (SharedMessages.isHidden(view)) {
+            view.setVisibility(View.GONE);
+            return;
+        }
         String id = resourceName(view);
+        if (SharedMediaGuard.scrub(view, id)) return;
         if (HIDDEN_IDS.contains(id) || (accountsOnly && isSearchMedia(view, id))) {
             hide(view);
             return;

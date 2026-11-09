@@ -25,7 +25,7 @@ else bash "$ROOT/gradlew" -p "$ROOT" build; fi
 python3 - "$ROOT/build/patch-report.json" <<'PY'
 import json,sys
 r=json.load(open(sys.argv[1]))
-required={'Clone','Feed item filtering','Network content blocking','Settings entry point','Strict minimal surfaces','Signature check bypass'}
+required={'Clone','Feed item filtering','Network content blocking','Settings entry point','Strict minimal surfaces','Signature check bypass','Chat screen capture','Chat shared media filter'}
 assert not r.get('failedPatches'),r
 assert required <= {p['name'] for p in r['appliedPatches']},r
 assert all(s['success'] for s in r['patchingSteps']),r

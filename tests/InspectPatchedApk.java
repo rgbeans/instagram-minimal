@@ -7,11 +7,11 @@ import com.android.tools.smali.dexlib2.iface.*;
 import com.android.tools.smali.dexlib2.iface.instruction.*;
 import com.android.tools.smali.dexlib2.iface.reference.*;
 
-/** Validate the delivered DEX files and the three required injected hook families. */
+/** Validate the delivered DEX files and the required injected hook families. */
 public class InspectPatchedApk {
     public static void main(String[] args) throws Exception {
         Map<String, ClassDef> classes = new HashMap<>();
-        int dexes=0, network=0, intents=0, fragments=0;
+        int dexes=0, network=0, intents=0, fragments=0, captureRequests=0, captureReleases=0, chatCards=0;
         try (ZipFile zip=new ZipFile(args[0])) {
             for (ZipEntry entry:Collections.list(zip.entries())) {
                 if (!entry.getName().matches("classes[0-9]*\\.dex")) continue;
@@ -37,10 +37,14 @@ public class InspectPatchedApk {
                     if (call.getDefiningClass().endsWith("/Block;") && call.getName().equals("throwIfBlocked")) network++;
                     if (call.getDefiningClass().endsWith("/NavigationGuard;") && call.getName().equals("filterIntent")) intents++;
                     if (call.getDefiningClass().endsWith("/ContentGuard;") && call.getName().equals("onFragmentViewCreated")) fragments++;
+                    if (call.getDefiningClass().endsWith("/ScreenCapture;") && call.getName().equals("skipRequest")) captureRequests++;
+                    if (call.getDefiningClass().endsWith("/ScreenCapture;") && call.getName().equals("skipRelease")) captureReleases++;
+                    if (call.getDefiningClass().endsWith("/SharedMessages;") && call.getName().equals("onBind")) chatCards++;
                 }
             }
         }
         if (network!=1 || intents<1 || fragments!=1) throw new AssertionError("Unexpected hooks: "+network+","+intents+","+fragments);
-        System.out.println("PASS APK DEX structure: "+dexes+" DEX files, "+classes.size()+" unique classes, all injected extension calls resolve; hooks network="+network+", intents="+intents+", fragments="+fragments);
+        if (captureRequests!=1 || captureReleases!=1 || chatCards<2) throw new AssertionError("Unexpected chat hooks: "+captureRequests+","+captureReleases+","+chatCards);
+        System.out.println("PASS APK DEX structure: "+dexes+" DEX files, "+classes.size()+" unique classes, all injected extension calls resolve; hooks network="+network+", intents="+intents+", fragments="+fragments+", capture="+(captureRequests+captureReleases)+", chat cards="+chatCards);
     }
 }

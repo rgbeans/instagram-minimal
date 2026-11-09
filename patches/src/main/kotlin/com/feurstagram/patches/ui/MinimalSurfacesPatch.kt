@@ -8,6 +8,8 @@ import app.morphe.patcher.patch.PatchException
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.feurstagram.patches.shared.Constants.COMPATIBILITY_INSTAGRAM
 import com.feurstagram.patches.shared.Constants.EXTENSION
@@ -33,29 +35,57 @@ val minimalSurfacesPatch = bytecodePatch(
             }
         }
         var guarded = 0
-        classDefForEach { cls ->
-            if (!cls.type.startsWith("Lcom/feurstagram/")) cls.methods.forEach { method ->
-                val code = method.implementation?.instructions?.toList() ?: return@forEach
-                val sites = code.withIndex().filter { (index, insn) ->
-                    val target = (insn as? ReferenceInstruction)?.reference as? MethodReference
-                    target?.name == "getIntent" && target.parameterTypes.isEmpty()
-                            && target.returnType == "Landroid/content/Intent;"
-                            && code.getOrNull(index + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT
+        var outgoing = 0
+        var web = 0
+        var hot = 0
+        classDefForEach classes@{ cls ->
+            if (cls.type.startsWith("Lcom/feurstagram/")) return@classes
+            cls.methods.forEach methods@{ method ->
+                val code = method.implementation?.instructions?.toList() ?: return@methods
+                val edits = mutableListOf<Pair<Int, String>>()
+                if (method.name == "onNewIntent" && method.parameterTypes.firstOrNull() == "Landroid/content/Intent;"
+                    && (method.accessFlags and 8) == 0) {
+                    edits += 0 to "invoke-static/range { p1 .. p1 }, Lcom/feurstagram/extension/NavigationGuard;->filterIntent(Landroid/content/Intent;)Landroid/content/Intent;"
+                    hot++
                 }
-                if (sites.isNotEmpty()) {
-                    val mutable = mutableClassDefBy(cls).methods.single { it.name == method.name && it.parameterTypes == method.parameterTypes && it.returnType == method.returnType }
-                    sites.reversed().forEach { (index, _) ->
+                code.withIndex().forEach { (index, insn) ->
+                    val target = (insn as? ReferenceInstruction)?.reference as? MethodReference ?: return@forEach
+                    if (target.name == "getIntent" && target.parameterTypes.isEmpty()
+                        && target.returnType == "Landroid/content/Intent;" && code.getOrNull(index + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT) {
                         val register = (code[index + 1] as OneRegisterInstruction).registerA
-                        mutable.addInstructions(index + 2, """
+                        edits += (index + 2) to """
                             invoke-static/range { v$register .. v$register }, Lcom/feurstagram/extension/NavigationGuard;->filterIntent(Landroid/content/Intent;)Landroid/content/Intent;
                             move-result-object v$register
-                        """)
+                        """
                         guarded++
                     }
+                    val offset = if (insn.opcode == Opcode.INVOKE_STATIC || insn.opcode == Opcode.INVOKE_STATIC_RANGE) 0 else 1
+                    val register = when (insn) {
+                        is RegisterRangeInstruction -> insn.startRegister + offset
+                        is FiveRegisterInstruction -> listOf(insn.registerC, insn.registerD, insn.registerE, insn.registerF, insn.registerG).getOrNull(offset)
+                        else -> null
+                    } ?: return@forEach
+                    if (target.name in setOf("startActivity", "startActivityForResult", "startActivityIfNeeded", "startNextMatchingActivity")
+                        && target.parameterTypes.firstOrNull() == "Landroid/content/Intent;") {
+                        edits += index to "invoke-static/range { v$register .. v$register }, Lcom/feurstagram/extension/NavigationGuard;->filterIntent(Landroid/content/Intent;)Landroid/content/Intent;"
+                        outgoing++
+                    }
+                    if (target.name in setOf("loadUrl", "postUrl") && target.parameterTypes.firstOrNull() == "Ljava/lang/String;") {
+                        if (register > 255) throw PatchException("Web URL register cannot be rewritten safely")
+                        edits += index to """
+                            invoke-static/range { v$register .. v$register }, Lcom/feurstagram/extension/MinimalPolicy;->filterWebUrl(Ljava/lang/String;)Ljava/lang/String;
+                            move-result-object v$register
+                        """
+                        web++
+                    }
+                }
+                if (edits.isNotEmpty()) {
+                    val mutable = mutableClassDefBy(cls).methods.single { it.name == method.name && it.parameterTypes == method.parameterTypes && it.returnType == method.returnType }
+                    edits.sortedByDescending { it.first }.forEach { (index, text) -> mutable.addInstructions(index, text) }
                 }
             }
         }
-        if (guarded == 0) throw PatchException("No incoming intent reads were guarded")
-        println("Instagram Minimal: guarded $guarded intent reads")
+        if (guarded == 0 || outgoing == 0 || hot == 0 || web == 0) throw PatchException("Missing navigation guard sites: $guarded/$outgoing/$hot/$web")
+        println("Instagram Minimal: guarded $guarded intent reads, $outgoing launches, $hot hot intents and $web web URLs")
     }
 }
