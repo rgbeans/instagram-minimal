@@ -11,11 +11,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--package', required=True)
 parser.add_argument('--output', required=True, type=pathlib.Path)
 parser.add_argument('--prefix', default='FULL_APP_STARTUP_RESULT')
+parser.add_argument('--relaunch-component')
 args = parser.parse_args()
 args.output.mkdir(parents=True, exist_ok=True)
 deadline = time.monotonic() + 180
+relaunch_after = time.monotonic() + 30
 result = {'package': args.package, 'passed': False, 'anr_wait_recoveries': 0,
-          'startup_ui_verified': False, 'login_form_visible': False,
+          'startup_ui_verified': False, 'login_form_visible': False, 'startup_relaunches': 0,
           'signed_in_features_tested': False}
 observed_pids = set()
 LOGIN_ROUTES = ['i already have a profile', 'i already have an account', 'log in to another account',
@@ -83,6 +85,17 @@ def wait_for_page(name):
             if app_nodes and ready:
                 screenshot(name)
                 return app_nodes
+            if (name == 'startup' and args.relaunch_component and not app_nodes
+                    and not result['startup_relaunches'] and time.monotonic() >= relaunch_after
+                    and any(node.get('package') in {'com.android.launcher3', 'com.google.android.apps.nexuslauncher'}
+                            for node in nodes)):
+                result['startup_relaunches'] = 1
+                screenshot('launcher-before-retry')
+                print('UI_PROBE_RELAUNCH=1', flush=True)
+                output = adb('shell', 'am', 'start', '-W', '-a', 'android.intent.action.MAIN',
+                             '-c', 'android.intent.category.LAUNCHER', '-f', '0x10200000',
+                             '-n', args.relaunch_component, timeout=45)
+                (args.output / 'relaunch.txt').write_bytes(output)
         time.sleep(8)
     raise AssertionError('No usable app UI appeared within the startup time limit')
 
@@ -120,14 +133,23 @@ except (AssertionError, subprocess.SubprocessError) as error:
 finally:
     log = subprocess.run(['adb', 'logcat', '-d', '-t', '10000'], capture_output=True, timeout=30).stdout.decode(errors='replace')
     (args.output / 'logcat.txt').write_text(log)
-    lines = log.splitlines()
-    app_crash_pids = set(re.findall(r'pid: (\d+).*>>> ' + re.escape(args.package) + r' <<<', log))
+    crashes = adb('logcat', '-b', 'crash', '-d', timeout=20).decode(errors='replace')
+    (args.output / 'crash-logcat.txt').write_text(crashes)
+    combined_log = log + '\n' + crashes
+    lines = combined_log.splitlines()
+    app_crash_pids = set(re.findall(r'pid: (\d+).*>>> ' + re.escape(args.package) + r' <<<', combined_log))
     native = [line for line in lines if 'Fatal signal' in line
               and any(re.search(r'\bpid ' + re.escape(pid) + r'\b', line) for pid in observed_pids | app_crash_pids)]
     result['native_crash_lines'] = native
+    app_java_crashes = [line for line in crashes.splitlines()
+                        if re.search(r'Process: ' + re.escape(args.package) + r'(?:,|:)', line)]
+    result['java_crash_lines'] = app_java_crashes
     if native:
         result['passed'] = False
         result['error'] = 'Native app crash was captured during the probe'
+    elif app_java_crashes:
+        result['passed'] = False
+        result['error'] = 'Java app crash was captured during the probe'
     selected = [line for line in lines if 'Fatal signal' in line or 'F DEBUG' in line or 'AndroidRuntime' in line]
     for line in selected[-100:]:
         print(line[:2000])
