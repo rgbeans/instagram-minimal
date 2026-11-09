@@ -1,5 +1,7 @@
 # Instagram Minimal
 
+https://github.com/user-attachments/assets/1db0975b-fc47-40a8-b907-5bbbd5e5841e
+
 Private experimental Android patch fork of [FeurStagramPaulo](https://github.com/leparlon/FeurStagramPaulo), derived from Feurstagram. The GPLv3 license and upstream NOTICE are preserved, including inside the APK.
 
 A signed ARM64 APK has been built from Meta-signed Instagram **454.0.0.54.77**, build **386014758**. Its package is `com.instagram.android.minimal`, so it installs alongside official Instagram. Android 9 or newer is required.
