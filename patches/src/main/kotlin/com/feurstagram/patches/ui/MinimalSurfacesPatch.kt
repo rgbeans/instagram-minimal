@@ -2,10 +2,14 @@ package com.feurstagram.patches.ui
 
 import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -19,6 +23,13 @@ private object FragmentViewFingerprint : Fingerprint(
     name = "performViewCreated", parameters = emptyList(), returnType = "V",
 )
 
+private object NotificationBridgeFingerprint : Fingerprint(
+    definingClass = "Lcom/feurstagram/extension/ChatControls;",
+    name = "openNativeNotifications",
+    parameters = listOf("Landroid/app/Activity;", "Ljava/lang/Object;"),
+    returnType = "Z",
+)
+
 val minimalSurfacesPatch = bytecodePatch(
     name = "Strict minimal surfaces",
     description = "Hides media fragments, profile grids and shared media cards before draw; restricts search rows to accounts and sanitizes deep links.",
@@ -27,6 +38,47 @@ val minimalSurfacesPatch = bytecodePatch(
     compatibleWith(COMPATIBILITY_INSTAGRAM)
     extendWith(EXTENSION)
     execute {
+        // Match the native action bar controller's fragment transaction. Its
+        // deep-link counterpart can return early when News isn't in the tab map.
+        val stub = NotificationBridgeFingerprint.method
+        val bridge = MutableMethod(ImmutableMethod(
+            stub.definingClass, stub.name, stub.parameters, stub.returnType,
+            stub.accessFlags, stub.annotations, stub.hiddenApiRestrictions, MutableMethodImplementation(3),
+        ))
+        bridge.apply {
+            addInstructionsWithLabels(0, """
+                instance-of v0, p0, Landroidx/fragment/app/FragmentActivity;
+                if-eqz v0, :unavailable
+                instance-of v0, p1, LX/06Yx;
+                if-eqz v0, :unavailable
+                check-cast p0, Landroidx/fragment/app/FragmentActivity;
+                check-cast p1, LX/06Yx;
+                invoke-virtual { p1 }, LX/06Yx;->getSession()LX/01yx;
+                move-result-object p1
+                instance-of v0, p1, Lcom/instagram/common/session/UserSession;
+                if-eqz v0, :unavailable
+                new-instance v0, LX/08Sa;
+                invoke-direct { v0, p0, p1 }, LX/08Sa;-><init>(Landroidx/fragment/app/FragmentActivity;LX/01yx;)V
+                const p1, 0x2019a
+                invoke-static { p1 }, LX/01ql;->A01(I)Ljava/lang/Object;
+                const/4 p0, 0x1
+                const/4 p1, 0x0
+                invoke-static { p0, p1 }, Lcom/instagram/newsfeed/fragment/NewsfeedFragment;->A02(ZZ)Lcom/instagram/newsfeed/fragment/NewsfeedFragment;
+                move-result-object p1
+                invoke-virtual { v0, p1 }, LX/08Sa;->A0F(Landroidx/fragment/app/Fragment;)V
+                invoke-virtual { v0 }, LX/08Sa;->A0A()V
+                invoke-virtual { v0 }, LX/08Sa;->A07()V
+                const/4 v0, 0x1
+                return v0
+                :unavailable
+                const/4 v0, 0x0
+                return v0
+            """)
+        }
+        NotificationBridgeFingerprint.classDef.methods.apply {
+            remove(stub)
+            add(bridge)
+        }
         FragmentViewFingerprint.method.apply {
             val returns = instructions.withIndex().filter { it.value.opcode == Opcode.RETURN_VOID }.map { it.index }
             if (returns.isEmpty()) throw PatchException("Fragment view dispatcher has no return")

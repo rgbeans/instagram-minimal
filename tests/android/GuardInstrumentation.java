@@ -159,9 +159,8 @@ public class GuardInstrumentation extends Instrumentation {
         inbox.getViewTreeObserver().dispatchOnPreDraw();
         check(actions.getChildCount()==2,"one bell after repeated draws");
         bell.performClick();
-        check(a.launchedIntent!=null && Intent.ACTION_VIEW.equals(a.launchedIntent.getAction())
-                && "instagram://news".equals(a.launchedIntent.getDataString())
-                && a.getPackageName().equals(a.launchedIntent.getPackage()), "bell opens this app's notifications");
+        check(a.launchedIntent==null && inboxFragment.resumed,
+                "bell keeps the inbox in place when a native session is unavailable");
         check(ScreenCapture.skipRequest(window,"DirectInboxController"),"ordinary inbox permits capture");
 
         inboxFragment.resumed = false;

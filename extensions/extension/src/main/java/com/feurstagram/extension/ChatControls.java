@@ -2,11 +2,10 @@ package com.feurstagram.extension;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Rect;
-import android.net.Uri;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -32,6 +31,25 @@ public final class ChatControls {
         View root = window.peekDecorView();
         Controller controller = root == null ? null : WINDOWS.get(root);
         return controller != null && controller.screen() != Screen.OTHER;
+    }
+
+    public static void openNotifications(Context context) {
+        if (context instanceof Activity) {
+            Activity activity = (Activity) context;
+            Controller controller = WINDOWS.get(activity.getWindow().peekDecorView());
+            try {
+                if (controller != null && controller.openNotifications(activity)) return;
+            } catch (RuntimeException | LinkageError error) {
+                Log.w("InstagramMinimal", "Could not open Notifications", error);
+            }
+        }
+        Toast.makeText(context, "Could not open Notifications. Try again from Messages.",
+                Toast.LENGTH_SHORT).show();
+    }
+
+    // The patch binds this to the pinned Instagram build's fragment navigator.
+    private static boolean openNativeNotifications(Activity activity, Object fragment) {
+        return false;
     }
 
     private enum Screen { OTHER, INBOX, THREAD }
@@ -126,6 +144,15 @@ public final class ChatControls {
             int id = ids.computeIfAbsent(name, key -> resource(view.getContext(), key, "id"));
             return id == 0 ? null : findVisible(view, id);
         }
+        boolean openNotifications(Activity activity) {
+            for (Entry entry : entries.values()) {
+                Object fragment = entry.fragment.get();
+                if (fragment != null && entry.active() && openNativeNotifications(activity, fragment)) {
+                    return true;
+                }
+            }
+            return false;
+        }
         void update() {
             View decor = root.get(); Window host = window.get();
             if (decor == null || host == null) return;
@@ -160,14 +187,7 @@ public final class ChatControls {
             if (context.getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, background, true)
                     && background.resourceId != 0) icon.setBackgroundResource(background.resourceId);
             else icon.setBackgroundColor(Color.TRANSPARENT);
-            icon.setOnClickListener(v -> {
-                Context activity = Settings.getActivityContext(v);
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("instagram://news"));
-                intent.setPackage(activity.getPackageName());
-                if (!(activity instanceof Activity)) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                try { activity.startActivity(intent); }
-                catch (RuntimeException error) { Toast.makeText(activity, "Notifications are unavailable here", Toast.LENGTH_SHORT).show(); }
-            });
+            icon.setOnClickListener(v -> ChatControls.openNotifications(Settings.getActivityContext(v)));
             int size = dp(context, 48);
             ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(size, size);
             if (parent instanceof LinearLayout) {

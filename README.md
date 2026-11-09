@@ -13,7 +13,7 @@ A signed ARM64 APK has been built from Meta-signed Instagram **454.0.0.54.77**, 
 - Apply fragment guards before drawing, including cached media viewers. Restrict native typeahead result rows to account rows.
 - Sanitize Instagram media URLs in incoming intents, outgoing activity launches and embedded web navigation; preserve account and DM links.
 - Preserve account-row click and accessibility state when search result views are recycled.
-- Open Instagram's Notifications from the bell beside Compose in Messages. Long-press Messages for settings.
+- Open Instagram's native Notifications screen from the bell beside Compose in Messages or from the settings shortcut. Long-press Messages for settings.
 - Hide native post, Reel and Story cards in DMs while preserving directly sent photos and ordinary attachments.
 - Allow screenshots and recording in the inbox and ordinary chats. Preserve capture protection for disappearing chats and protected media viewers.
 - Keep Notes, DMs, direct photo views, account search entry, profiles, and account management available by design.

@@ -45,6 +45,68 @@ public class InspectPatchedApk {
         }
         if (network!=1 || intents<1 || fragments!=1) throw new AssertionError("Unexpected hooks: "+network+","+intents+","+fragments);
         if (captureRequests!=1 || captureReleases!=1 || chatCards<2) throw new AssertionError("Unexpected chat hooks: "+captureRequests+","+captureReleases+","+chatCards);
+        verifyNativeNotifications(classes);
         System.out.println("PASS APK DEX structure: "+dexes+" DEX files, "+classes.size()+" unique classes, all injected extension calls resolve; hooks network="+network+", intents="+intents+", fragments="+fragments+", capture="+(captureRequests+captureReleases)+", chat cards="+chatCards);
+    }
+
+    private static void verifyNativeNotifications(Map<String, ClassDef> classes) {
+        String extension = "Lcom/feurstagram/extension/";
+        String chat = extension + "ChatControls;";
+        String launcher = chat + "->openNotifications(Landroid/content/Context;)V";
+        String navigator = "LX/08Sa;";
+        String fragment = "Lcom/instagram/newsfeed/fragment/NewsfeedFragment;";
+        List<String> transaction = List.of(
+                navigator + "-><init>(Landroidx/fragment/app/FragmentActivity;LX/01yx;)V",
+                "LX/01ql;->A01(I)Ljava/lang/Object;",
+                fragment + "->A02(ZZ)" + fragment,
+                navigator + "->A0F(Landroidx/fragment/app/Fragment;)V",
+                navigator + "->A0A()V",
+                navigator + "->A07()V");
+        List<String> bridge = new ArrayList<>();
+        bridge.add("LX/06Yx;->getSession()LX/01yx;");
+        bridge.addAll(transaction);
+        String bridgeSignature = chat + "->openNativeNotifications(Landroid/app/Activity;Ljava/lang/Object;)Z";
+        if (!bridge.equals(calls(method(classes, bridgeSignature)))) {
+            throw new AssertionError("Notifications bridge must open the native fragment with the current session");
+        }
+        for (String target : bridge) method(classes, target);
+        List<String> nativeCalls = calls(method(classes, "LX/00I4;->A00(Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;)V"));
+        if (Collections.indexOfSubList(nativeCalls, transaction) == -1) {
+            throw new AssertionError("Native action bar Notifications transaction changed");
+        }
+        for (String owner : List.of(extension + "ChatControls$Controller;", extension + "Settings;")) {
+            boolean usesLauncher = false;
+            for (Method m : classes.get(owner).getMethods()) {
+                List<String> refs = calls(m);
+                if (refs.contains(launcher)) usesLauncher = true;
+                if (refs.contains("instagram://news")) {
+                    throw new AssertionError("Legacy Notifications link remains in " + owner);
+                }
+            }
+            if (!usesLauncher) throw new AssertionError("Missing Notifications shortcut in " + owner);
+        }
+        System.out.println("PASS native Notifications transaction and both entry points");
+    }
+
+    private static Method method(Map<String, ClassDef> classes, String descriptor) {
+        ClassDef owner = classes.get(descriptor.substring(0, descriptor.indexOf("->")));
+        if (owner != null) for (Method candidate : owner.getMethods()) {
+            if (descriptor.equals(candidate.toString())) return candidate;
+        }
+        throw new AssertionError("Missing native Notifications method: " + descriptor);
+    }
+
+    private static List<String> calls(Method method) {
+        List<String> refs = new ArrayList<>();
+        if (method.getImplementation() == null) return refs;
+        for (Instruction ins : method.getImplementation().getInstructions()) {
+            if (ins instanceof ReferenceInstruction reference) {
+                if (reference.getReference() instanceof MethodReference call) refs.add(call.toString());
+                if (reference.getReference() instanceof StringReference string && "instagram://news".equals(string.getString())) {
+                    refs.add(string.getString());
+                }
+            }
+        }
+        return refs;
     }
 }

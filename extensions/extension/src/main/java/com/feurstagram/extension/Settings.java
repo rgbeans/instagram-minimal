@@ -436,9 +436,7 @@ public final class Settings {
         Button notifications = makeButton(context, "Notifications", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
         notifications.setOnClickListener(v -> {
             dialog.dismiss();
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("instagram://news"));
-            intent.setPackage(context.getPackageName());
-            context.startActivity(intent);
+            ChatControls.openNotifications(context);
         });
         column.addView(notifications, stackedButtonParams(context, 12));
 
