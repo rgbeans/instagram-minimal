@@ -8,6 +8,8 @@ A signed ARM64 APK has been built from Meta-signed Instagram **454.0.0.54.77**, 
 
 **Status: experimental; the current build needs signed-in acceptance testing.** See [the test report](docs/TEST_REPORT.md) for tested behavior and limitations.
 
+**iOS** · [Native patch preview](ios/README.md). Requires a compatible IPA and iPhone testing.
+
 ## Implemented changes
 
 - Force feed, Explore media, Reels and Stories blocking, including preferences restored from older installations.
